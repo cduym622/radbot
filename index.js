@@ -27,19 +27,30 @@ client.on('messageCreate', async (message) => {
 
     let conversationLog = [{ role: 'system', content: "You are a friendly chatbot."}];
 
-    conversationLog.push({
-        role: 'user',
-        content: message.content,
+    await message.channel.sendTyping();
+
+    let prevMessages = await message.channel.messages.fetch({ limit: 15 });
+    prevMessages.reverse();
+
+    prevMessages.forEach((msg) => {
+        if (message.channel.id !== process.env.CHANNEL_ID) return;
+        if (msg.author.id !== client.user.id && message.author.bot) return;
+        if (msg.author.id !== message.author.id) return;
+
+        conversationLog.push({
+            role: 'user',
+            content: msg.content,
+        });
     });
 
-    await message.channel.sendTyping();
 
     const result = await openai.createChatCompletion({
         model: 'gpt-3.5-turbo',
         messages: conversationLog,
     })
 
-    message.reply(result.data.choices[0].message);
+    // store result, if result > 2000 chars, parse first 1500 and ask if they want the rest
+    message.reply(result.data.choices[0].message); 
 
 });
 
